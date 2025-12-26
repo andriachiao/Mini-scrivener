@@ -1,0 +1,2131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mini Scrivener v2 – Projects / Chapters / Scenes</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      color: #222;
+      background: #f4f5f7;
+    }
+    .app {
+      display: flex;
+      height: 100vh;
+    }
+    .sidebar {
+      width: 340px;
+      background: #111827;
+      color: #f9fafb;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #374151;
+    }
+    .sidebar-header {
+      padding: 8px 10px 6px;
+      border-bottom: 1px solid #374151;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .sidebar-header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+    .project-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: #9ca3af;
+    }
+    .project-row span {
+      white-space: nowrap;
+    }
+    .project-row select {
+      flex: 1;
+      font-size: 11px;
+      padding: 2px 4px;
+      border-radius: 4px;
+      border: 1px solid #4b5563;
+      background: #111827;
+      color: #e5e7eb;
+    }
+
+    .sidebar-header-left h1 {
+      font-size: 13px;
+      margin: 0;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #e5e7eb;
+    }
+    .mode-select-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: #9ca3af;
+    }
+    .mode-select-row span {
+      white-space: nowrap;
+    }
+    .mode-select-row select {
+      flex: 1;
+      font-size: 11px;
+      padding: 2px 4px;
+      border-radius: 4px;
+      border: 1px solid #4b5563;
+      background: #111827;
+      color: #e5e7eb;
+    }
+
+    .sidebar-header-right {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .btn {
+      background: #2563eb;
+      border: none;
+      color: #fff;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn.secondary {
+      background: #374151;
+    }
+    .btn:hover {
+      filter: brightness(1.08);
+    }
+    .icon-btn {
+      border: none;
+      background: transparent;
+      color: #9ca3af;
+      cursor: pointer;
+      padding: 0 3px;
+      font-size: 11px;
+    }
+    .icon-btn:hover {
+      color: #e5e7eb;
+    }
+
+    .chapters-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 6px 4px;
+    }
+    .sidebar-footer {
+      padding: 4px 6px 6px;
+      border-top: 1px solid #1f2937;
+    }
+    .sidebar-footer button {
+      width: 100%;
+      padding: 4px 0;
+      font-size: 11px;
+    }
+
+    .chapter-block {
+      margin-bottom: 8px;
+      border-radius: 6px;
+      background: #111827;
+      border: 1px solid #1f2937;
+    }
+    .chapter-header {
+      padding: 6px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #1f2937;
+      cursor: move;
+    }
+    .chapter-header.selected {
+      background: #1f2937;
+      border-bottom-color: #4f46e5;
+    }
+    .chapter-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #e5e7eb;
+    }
+    .chapter-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .scene-list {
+      list-style: none;
+      margin: 0;
+      padding: 4px;
+    }
+    .scene-item {
+      padding: 6px 8px;
+      margin-bottom: 4px;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #0f172a;
+      border: 1px solid transparent;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      border-left: 3px solid transparent;
+    }
+    .scene-item.selected {
+      background: #1f2933;
+      border-color: #4f46e5;
+    }
+    .scene-item.color-none { border-left-color: transparent; }
+    .scene-item.color-blue { border-left-color: #3b82f6; }
+    .scene-item.color-green { border-left-color: #10b981; }
+    .scene-item.color-yellow { border-left-color: #fbbf24; }
+    .scene-item.color-red { border-left-color: #ef4444; }
+    .scene-item.color-purple { border-left-color: #a855f7; }
+    .scene-item.color-gray { border-left-color: #9ca3af; }
+
+    .scene-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f9fafb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .scene-note-line {
+      font-size: 11px;
+      color: #e5e7eb;
+      max-height: 2.8em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .scene-small-line {
+      font-size: 10px;
+      color: #9ca3af;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .editor {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .editor-header {
+      padding: 8px 12px;
+      background: #ffffff;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .editor-header input {
+      flex: 1;
+      font-size: 18px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+    }
+    .editor-header input:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 1px rgba(79,70,229,0.2);
+    }
+    .editor-header .toolbar-right {
+      display: flex;
+      gap: 4px;
+    }
+
+    .editor-meta {
+      padding: 6px 12px 4px;
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+    }
+    .editor-meta-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .editor-meta-row label {
+      font-size: 11px;
+      color: #6b7280;
+      min-width: 56px;
+    }
+    .editor-meta-row input,
+    .editor-meta-row select {
+      flex: 1;
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #d1d5db;
+      background: #ffffff;
+    }
+    .editor-meta-row input:focus,
+    .editor-meta-row select:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 1px rgba(79,70,229,0.1);
+    }
+    .editor-meta-note {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .editor-meta-note textarea {
+      resize: vertical;
+      min-height: 40px;
+      max-height: 120px;
+      font-size: 12px;
+      padding: 4px 6px;
+      border-radius: 4px;
+      border: 1px solid #d1d5db;
+      font-family: inherit;
+      background: #ffffff;
+    }
+    .editor-meta-note textarea:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 1px rgba(79,70,229,0.1);
+    }
+
+    .editor-body {
+      flex: 1;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .editor-body textarea {
+      flex: 1;
+      border: none;
+      resize: none;
+      padding: 12px 16px;
+      font-family: "Menlo", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono";
+      font-size: 14px;
+      line-height: 1.5;
+      background: #f3f4f6;
+    }
+    .editor-body textarea:focus {
+      outline: none;
+      background: #ffffff;
+    }
+
+    .status-bar {
+      height: 24px;
+      padding: 3px 12px;
+      background: #f3f4f6;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #6b7280;
+      gap: 8px;
+    }
+    .status-left {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .status-right {
+      white-space: nowrap;
+    }
+
+    .hidden-file {
+      display: none;
+    }
+
+    /* Kanban overlay */
+    .kanban-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,0.8);
+      display: none;
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+    }
+    .kanban-panel {
+      background: #020617;
+      border-radius: 12px;
+      border: 1px solid #4b5563;
+      width: 96%;
+      height: 92%;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      color: #e5e7eb;
+    }
+    .kanban-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .kanban-header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .kanban-header-left h2 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .kanban-header-left span {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+    .kanban-board {
+      flex: 1;
+      overflow-x: auto;
+      display: flex;
+      gap: 8px;
+      padding-bottom: 4px;
+    }
+    .kanban-footer {
+      margin-top: 6px;
+      text-align: center;
+    }
+    .kanban-column {
+      background: #020617;
+      border-radius: 8px;
+      border: 1px solid #1f2937;
+      min-width: 220px;
+      max-width: 260px;
+      display: flex;
+      flex-direction: column;
+    }
+    .kanban-column-header {
+      padding: 6px 8px;
+      border-bottom: 1px solid #1f2937;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .kanban-column-body {
+      flex: 1;
+      padding: 6px;
+      overflow-y: auto;
+    }
+    .kanban-card {
+      background: #0f172a;
+      border-radius: 8px;
+      padding: 6px 6px 4px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      border-left: 3px solid transparent;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 11px;
+    }
+    .kanban-card.selected {
+      border-color: #4f46e5;
+      background: #1f2937;
+    }
+    .kanban-card.color-none { border-left-color: transparent; }
+    .kanban-card.color-blue { border-left-color: #3b82f6; }
+    .kanban-card.color-green { border-left-color: #10b981; }
+    .kanban-card.color-yellow { border-left-color: #fbbf24; }
+    .kanban-card.color-red { border-left-color: #ef4444; }
+    .kanban-card.color-purple { border-left-color: #a855f7; }
+    .kanban-card.color-gray { border-left-color: #9ca3af; }
+
+    .kanban-card-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: #e5e7eb;
+    }
+    .kanban-card-title-row [contenteditable="true"] {
+      outline: none;
+      border-bottom: 1px dashed transparent;
+    }
+    .kanban-card-title-row [contenteditable="true"]:focus {
+      border-bottom-color: #4f46e5;
+    }
+    .kanban-card-note {
+      font-size: 11px;
+      color: #e5e7eb;
+      max-height: 4.2em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+    }
+    .kanban-card-note[contenteditable="true"] {
+      outline: none;
+      border-radius: 4px;
+      padding: 1px 2px;
+    }
+    .kanban-card-note[contenteditable="true"]:focus {
+      background: #020617;
+      border: 1px solid #4f46e5;
+      -webkit-line-clamp: unset;
+      max-height: none;
+    }
+    .kanban-card-small {
+      font-size: 10px;
+      color: #9ca3af;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .kanban-color-btn {
+      border: none;
+      background: transparent;
+      color: #9ca3af;
+      cursor: pointer;
+      font-size: 11px;
+      padding: 0 2px;
+    }
+    .kanban-color-btn:hover {
+      color: #e5e7eb;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-header-left">
+          <div class="project-row">
+            <span>Project:</span>
+            <select id="projectSelect"></select>
+            <button class="icon-btn" id="newProjectBtn" title="New project">＋</button>
+            <button class="icon-btn" id="renameProjectBtn" title="Rename project">✎</button>
+            <button class="icon-btn" id="deleteProjectBtn" title="Delete project">✕</button>
+          </div>
+          <h1>Writing Binder</h1>
+          <div class="mode-select-row">
+            <span>Mode:</span>
+            <select id="modeSelect">
+              <option value="novel">Novel</option>
+              <option value="script">Script</option>
+            </select>
+          </div>
+          <div class="mode-select-row">
+            <span>Character:</span>
+            <select id="characterFilter">
+              <option value="all">All</option>
+            </select>
+          </div>
+          <div class="mode-select-row">
+            <span>Tag:</span>
+            <select id="tagFilter">
+              <option value="all">All</option>
+            </select>
+          </div>
+        </div>
+        <div class="sidebar-header-right">
+          <button class="btn secondary" id="addChapterBtn">+Ch</button>
+          <button class="btn" id="addSceneBtn">+Sc</button>
+        </div>
+      </div>
+      <div class="chapters-container" id="chaptersContainer"></div>
+      <div class="sidebar-footer">
+        <button class="btn secondary" id="quickAddCardBtn" title="Quick index card">＋ Card</button>
+      </div>
+    </div>
+
+    <div class="editor">
+      <div class="editor-header">
+        <input id="titleInput" type="text" placeholder="Scene title…" />
+        <div class="toolbar-right">
+          <button class="btn secondary" id="kanbanBtn" title="Index Cards Board (⌘B)">Board</button>
+          <button class="btn secondary" id="backupBtn" title="Export JSON backup">Backup</button>
+          <button class="btn secondary" id="exportTxtBtn" title="Export TXT">TXT</button>
+          <button class="btn secondary" id="exportMdBtn" title="Export Markdown">MD</button>
+          <button class="btn secondary" id="exportDocBtn" title="Export Word (.doc)">DOC</button>
+          <button class="btn secondary" id="importBtn">Import</button>
+          <input type="file" id="importFile" accept="application/json" class="hidden-file" />
+        </div>
+      </div>
+
+      <div class="editor-meta">
+        <div class="editor-meta-row">
+          <label for="colorSelect">Color</label>
+          <select id="colorSelect">
+            <option value="none">None</option>
+            <option value="blue">Blue</option>
+            <option value="green">Green</option>
+            <option value="yellow">Yellow</option>
+            <option value="red">Red</option>
+            <option value="purple">Purple</option>
+            <option value="gray">Gray</option>
+          </select>
+        </div>
+        <div class="editor-meta-note">
+          <label for="noteInput" style="font-size:11px;color:#6b7280;">Note (card front)</label>
+          <textarea id="noteInput" placeholder="Short note; this will be shown on the index card."></textarea>
+        </div>
+        <div class="editor-meta-row">
+          <label for="goalInput">Goal</label>
+          <input id="goalInput" type="text" placeholder="What should this scene accomplish?" />
+        </div>
+        <div class="editor-meta-row">
+          <label for="conflictInput">Conflict</label>
+          <input id="conflictInput" type="text" placeholder="Where is the tension in this scene?" />
+        </div>
+        <div class="editor-meta-row">
+          <label for="charsInput">Chars</label>
+          <input id="charsInput" type="text" placeholder="e.g. Ana, Marko, Uroš"/>
+        </div>
+        <div class="editor-meta-row">
+          <label for="tagsInput">Tags</label>
+          <input id="tagsInput" type="text" placeholder="e.g. cafe, argument, night"/>
+        </div>
+      </div>
+
+      <div class="editor-body">
+        <textarea id="textInput" placeholder="Write your scene here…"></textarea>
+      </div>
+
+      <div class="status-bar">
+        <span id="statusInfo" class="status-left">No scene selected</span>
+        <span id="statusHint" class="status-left" style="flex:1.2; text-align:right; opacity:.7;">
+          Tip: after finishing, create a 'Next Card' for tomorrow.
+        </span>
+        <span id="wordCount" class="status-right">0 words</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kanban / Index Cards Board -->
+  <div id="kanbanOverlay" class="kanban-overlay">
+    <div class="kanban-panel">
+      <div class="kanban-header">
+        <div class="kanban-header-left">
+          <h2>Index Cards Board</h2>
+          <span>
+            Drag cards / ◆ change color / edit title & note inline. Board always shows all scenes.
+          </span>
+        </div>
+        <button class="btn secondary" id="kanbanCloseBtn">Close</button>
+      </div>
+      <div class="kanban-board" id="kanbanBoard"></div>
+      <div class="kanban-footer">
+        <button class="btn secondary" id="kanbanAddCardBtn">＋ Card</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Custom hotkeys =====
+    const HOTKEYS = {
+      newScene: {
+        label: "New Scene",
+        keys: ["Meta+Shift+S", "Control+Shift+S"]
+      },
+      newChapter: {
+        label: "New Chapter",
+        keys: ["Meta+Shift+C", "Control+Shift+C"]
+      },
+      nextScene: {
+        label: "Next Scene",
+        keys: ["Alt+ArrowDown"]
+      },
+      prevScene: {
+        label: "Previous Scene",
+        keys: ["Alt+ArrowUp"]
+      },
+      toggleBoard: {
+        label: "Toggle Board",
+        keys: ["Meta+B", "Control+B"]
+      }
+    };
+
+    const PROJECT_INDEX_KEY = "miniScrivenerProjectsIndexV1";
+    const PROJECT_DATA_PREFIX = "miniScrivenerProjectDataV1_";
+    const LEGACY_SINGLE_KEY = "miniScrivenerDataV3";
+
+    let projectIndex = { currentProjectId: null, projects: [] };
+    let data = { mode: "novel", chapters: [], scenes: [] };
+
+    let selectedChapterId = null;
+    let selectedSceneId = null;
+    let chapterDragSrcId = null;
+    let dragSceneId = null;
+
+    const chaptersContainer = document.getElementById("chaptersContainer");
+    const modeSelect = document.getElementById("modeSelect");
+    const characterFilter = document.getElementById("characterFilter");
+    const tagFilter = document.getElementById("tagFilter");
+
+    const titleInput = document.getElementById("titleInput");
+    const colorSelect = document.getElementById("colorSelect");
+    const tagsInput = document.getElementById("tagsInput");
+    const charsInput = document.getElementById("charsInput");
+    const noteInput = document.getElementById("noteInput");
+    const goalInput = document.getElementById("goalInput");
+    const conflictInput = document.getElementById("conflictInput");
+    const textInput = document.getElementById("textInput");
+    const statusInfo = document.getElementById("statusInfo");
+    const statusHint = document.getElementById("statusHint");
+    const wordCountEl = document.getElementById("wordCount");
+
+    const addChapterBtn = document.getElementById("addChapterBtn");
+    const addSceneBtn = document.getElementById("addSceneBtn");
+    const quickAddCardBtn = document.getElementById("quickAddCardBtn");
+    const backupBtn = document.getElementById("backupBtn");
+    const exportTxtBtn = document.getElementById("exportTxtBtn");
+    const exportMdBtn = document.getElementById("exportMdBtn");
+    const exportDocBtn = document.getElementById("exportDocBtn");
+    const importBtn = document.getElementById("importBtn");
+    const importFile = document.getElementById("importFile");
+    const kanbanBtn = document.getElementById("kanbanBtn");
+
+    const projectSelect = document.getElementById("projectSelect");
+    const newProjectBtn = document.getElementById("newProjectBtn");
+    const renameProjectBtn = document.getElementById("renameProjectBtn");
+    const deleteProjectBtn = document.getElementById("deleteProjectBtn");
+
+    const kanbanOverlay = document.getElementById("kanbanOverlay");
+    const kanbanBoard = document.getElementById("kanbanBoard");
+    const kanbanCloseBtn = document.getElementById("kanbanCloseBtn");
+    const kanbanAddCardBtn = document.getElementById("kanbanAddCardBtn");
+
+    function generateId() {
+      return Date.now().toString(36) + "-" + Math.random().toString(16).slice(2);
+    }
+    function getProjectStorageKey(pid) {
+      return PROJECT_DATA_PREFIX + pid;
+    }
+
+    function splitList(str) {
+      return (str || "")
+        .split(/[,、，\s]+/)
+        .map(x => x.trim())
+        .filter(Boolean);
+    }
+
+    function buildExportFilename(ext) {
+      const pid = projectIndex.currentProjectId;
+      const p = projectIndex.projects.find(x => x.id === pid);
+      let base = p ? p.name : "manuscript";
+      base = base.replace(/[\\\/:*?"<>|]/g, "_");
+      const d = new Date();
+      const pad = n => String(n).padStart(2, "0");
+      const stamp =
+        d.getFullYear().toString() +
+        pad(d.getMonth() + 1) +
+        pad(d.getDate()) +
+        "_" +
+        pad(d.getHours()) +
+        pad(d.getMinutes());
+      return base + "_" + stamp + "." + ext;
+    }
+
+    function loadProjectIndex() {
+      const raw = localStorage.getItem(PROJECT_INDEX_KEY);
+      if (raw) {
+        try {
+          projectIndex = JSON.parse(raw);
+          if (!projectIndex || !Array.isArray(projectIndex.projects)) {
+            projectIndex = { currentProjectId: null, projects: [] };
+          }
+        } catch {
+          projectIndex = { currentProjectId: null, projects: [] };
+        }
+      }
+      if (projectIndex.projects.length === 0) {
+        const legacy = localStorage.getItem(LEGACY_SINGLE_KEY);
+        const defaultId = "proj-" + generateId();
+        const defaultName = "Project 1";
+        projectIndex = {
+          currentProjectId: defaultId,
+          projects: [{ id: defaultId, name: defaultName }]
+        };
+        if (legacy) {
+          localStorage.setItem(getProjectStorageKey(defaultId), legacy);
+          localStorage.removeItem(LEGACY_SINGLE_KEY);
+        }
+        saveProjectIndex();
+      }
+      if (!projectIndex.currentProjectId && projectIndex.projects.length > 0) {
+        projectIndex.currentProjectId = projectIndex.projects[0].id;
+        saveProjectIndex();
+      }
+    }
+
+    function saveProjectIndex() {
+      localStorage.setItem(PROJECT_INDEX_KEY, JSON.stringify(projectIndex));
+    }
+
+    function createDefaultData() {
+      const chId = generateId();
+      const ch = { id: chId, title: "Chapter 1", order: 0 };
+      const sceneId = generateId();
+      const sc = {
+        id: sceneId,
+        chapterId: chId,
+        title: "New Scene 1",
+        text: "",
+        tags: "",
+        characters: "",
+        note: "",
+        goal: "",
+        conflict: "",
+        color: "none",
+        order: 0,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      data = { mode: "novel", chapters: [ch], scenes: [sc] };
+      selectedChapterId = chId;
+      selectedSceneId = sceneId;
+    }
+
+    function normalizeSceneOrders() {
+      data.chapters.forEach(ch => {
+        const scenes = data.scenes
+          .filter(s => s.chapterId === ch.id)
+          .sort((a,b) => (a.order ?? 0) - (b.order ?? 0) || (a.createdAt ?? 0) - (b.createdAt ?? 0));
+        scenes.forEach((s, idx) => { s.order = idx; });
+      });
+    }
+
+    function loadProjectData(projectId) {
+      const key = getProjectStorageKey(projectId);
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.chapters) && Array.isArray(parsed.scenes)) {
+            data = parsed;
+          } else {
+            createDefaultData();
+          }
+        } catch {
+          createDefaultData();
+        }
+      } else {
+        createDefaultData();
+      }
+      if (!data.mode) data.mode = "novel";
+      data.chapters.forEach((c, i) => {
+        if (typeof c.order !== "number") c.order = i;
+      });
+      data.scenes.forEach(s => {
+        if (s.tags === undefined) s.tags = "";
+        if (s.note === undefined) s.note = "";
+        if (s.color === undefined) s.color = "none";
+        if (s.characters === undefined) s.characters = "";
+        if (s.goal === undefined) s.goal = "";
+        if (s.conflict === undefined) s.conflict = "";
+        if (typeof s.order !== "number") s.order = 0;
+      });
+      normalizeSceneOrders();
+
+      if (data.chapters.length === 0) {
+        createDefaultData();
+      }
+
+      const sortedChapters = data.chapters.slice().sort((a,b)=>a.order-b.order);
+      selectedChapterId = sortedChapters[0].id;
+      const firstScene = data.scenes.find(s => s.chapterId === selectedChapterId) || data.scenes[0];
+      selectedSceneId = firstScene ? firstScene.id : null;
+
+      rebuildCharacterFilter();
+      rebuildTagFilter();
+    }
+
+    function saveProjectData() {
+      const pid = projectIndex.currentProjectId;
+      if (!pid) return;
+      localStorage.setItem(getProjectStorageKey(pid), JSON.stringify(data));
+    }
+
+    function renderProjectSelect() {
+      projectSelect.innerHTML = "";
+      projectIndex.projects.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.name;
+        projectSelect.appendChild(opt);
+      });
+      projectSelect.value = projectIndex.currentProjectId;
+    }
+
+    function switchProject(newPid) {
+      if (newPid === projectIndex.currentProjectId) return;
+      saveProjectData();
+      projectIndex.currentProjectId = newPid;
+      saveProjectIndex();
+      loadProjectData(newPid);
+      renderProjectSelect();
+      modeSelect.value = data.mode || "novel";
+      renderChaptersAndScenes();
+      renderEditor();
+    }
+
+    function getScenesByChapter(chId) {
+      return data.scenes
+        .filter(s => s.chapterId === chId)
+        .sort((a,b) => (a.order ?? 0) - (b.order ?? 0) || (a.createdAt ?? 0) - (b.createdAt ?? 0));
+    }
+    function getSceneById(id) {
+      return data.scenes.find(s => s.id === id) || null;
+    }
+    function getChapterById(id) {
+      return data.chapters.find(c => c.id === id) || null;
+    }
+
+    function passesCharacterFilter(scene) {
+      const val = characterFilter.value || "all";
+      if (val === "all") return true;
+      const chars = splitList(scene.characters).map(x => x.toLowerCase());
+      return chars.includes(val.toLowerCase());
+    }
+    function passesTagFilter(scene) {
+      const val = tagFilter.value || "all";
+      if (val === "all") return true;
+      const tags = splitList(scene.tags).map(x => x.toLowerCase());
+      return tags.includes(val.toLowerCase());
+    }
+    function scenePassesFilters(scene) {
+      return passesCharacterFilter(scene) && passesTagFilter(scene);
+    }
+
+    function rebuildCharacterFilter() {
+      const current = characterFilter.value || "all";
+      const set = new Set();
+      data.scenes.forEach(s => {
+        splitList(s.characters).forEach(name => set.add(name));
+      });
+      const list = Array.from(set).sort((a,b)=>a.localeCompare(b));
+
+      characterFilter.innerHTML = "";
+      const optAll = document.createElement("option");
+      optAll.value = "all";
+      optAll.textContent = "All";
+      characterFilter.appendChild(optAll);
+
+      list.forEach(name => {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        characterFilter.appendChild(opt);
+      });
+
+      if (list.includes(current)) {
+        characterFilter.value = current;
+      } else {
+        characterFilter.value = "all";
+      }
+    }
+
+    function rebuildTagFilter() {
+      const current = tagFilter.value || "all";
+      const set = new Set();
+      data.scenes.forEach(s => {
+        splitList(s.tags).forEach(t => set.add(t));
+      });
+      const list = Array.from(set).sort((a,b)=>a.localeCompare(b));
+
+      tagFilter.innerHTML = "";
+      const optAll = document.createElement("option");
+      optAll.value = "all";
+      optAll.textContent = "All";
+      tagFilter.appendChild(optAll);
+
+      list.forEach(tag => {
+        const opt = document.createElement("option");
+        opt.value = tag;
+        opt.textContent = tag;
+        tagFilter.appendChild(opt);
+      });
+
+      if (list.includes(current)) {
+        tagFilter.value = current;
+      } else {
+        tagFilter.value = "all";
+      }
+    }
+
+    function renderChaptersAndScenes() {
+      chaptersContainer.innerHTML = "";
+      const sortedChapters = data.chapters.slice().sort((a,b)=>a.order-b.order);
+      if (!selectedChapterId && sortedChapters.length > 0) {
+        selectedChapterId = sortedChapters[0].id;
+      }
+
+      const filterVal = characterFilter.value || "all";
+      const tagVal = tagFilter.value || "all";
+      const dragEnabled = (filterVal === "all" && tagVal === "all");
+
+      sortedChapters.forEach(ch => {
+        const block = document.createElement("div");
+        block.className = "chapter-block";
+        block.dataset.chapterId = ch.id;
+        block.draggable = true;
+
+        const header = document.createElement("div");
+        header.className = "chapter-header" + (ch.id === selectedChapterId ? " selected" : "");
+        const titleSpan = document.createElement("div");
+        titleSpan.className = "chapter-title";
+        titleSpan.textContent = ch.title;
+
+        const actions = document.createElement("div");
+        actions.className = "chapter-actions";
+
+        const renameBtn = document.createElement("button");
+        renameBtn.className = "icon-btn";
+        renameBtn.textContent = "✎";
+        renameBtn.title = "Rename chapter";
+        renameBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          renameChapter(ch.id);
+        });
+
+        const addSceneHereBtn = document.createElement("button");
+        addSceneHereBtn.className = "icon-btn";
+        addSceneHereBtn.textContent = "+";
+        addSceneHereBtn.title = "Add scene in this chapter";
+        addSceneHereBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          addScene(ch.id);
+        });
+
+        const delChBtn = document.createElement("button");
+        delChBtn.className = "icon-btn";
+        delChBtn.textContent = "✕";
+        delChBtn.title = "Delete chapter (and its scenes)";
+        delChBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          deleteChapter(ch.id);
+        });
+
+        actions.appendChild(addSceneHereBtn);
+        actions.appendChild(renameBtn);
+        actions.appendChild(delChBtn);
+
+        header.appendChild(titleSpan);
+        header.appendChild(actions);
+
+        header.addEventListener("click", () => {
+          selectedChapterId = ch.id;
+          const scenesInChAll = getScenesByChapter(ch.id);
+          const scenesVisible = scenesInChAll.filter(scenePassesFilters);
+          if (scenesVisible.length > 0) {
+            selectedSceneId = scenesVisible[0].id;
+          }
+          renderChaptersAndScenes();
+          renderEditor();
+        });
+
+        block.addEventListener("dragstart", handleChapterDragStart);
+        block.addEventListener("dragover", handleChapterDragOver);
+        block.addEventListener("drop", handleChapterDrop);
+
+        const ul = document.createElement("ul");
+        ul.className = "scene-list";
+        const scenesInChapter = getScenesByChapter(ch.id).filter(scenePassesFilters);
+        scenesInChapter.forEach(scene => {
+          const li = document.createElement("li");
+          const colorClass = scene.color ? (" color-" + scene.color) : " color-none";
+          li.className = "scene-item" + (scene.id === selectedSceneId ? " selected" : "") + colorClass;
+          li.dataset.sceneId = scene.id;
+          li.dataset.chapterId = ch.id;
+
+          const titleRow = document.createElement("div");
+          titleRow.className = "scene-title";
+          const tSpan = document.createElement("span");
+          tSpan.textContent = scene.title || "Untitled";
+
+          const sActions = document.createElement("div");
+          sActions.className = "scene-actions";
+          const delBtn = document.createElement("button");
+          delBtn.className = "icon-btn";
+          delBtn.textContent = "✕";
+          delBtn.title = "Delete scene";
+          delBtn.addEventListener("click", e => {
+            e.stopPropagation();
+            deleteScene(scene.id);
+          });
+          sActions.appendChild(delBtn);
+
+          titleRow.appendChild(tSpan);
+          titleRow.appendChild(sActions);
+
+          const noteLine = document.createElement("div");
+          noteLine.className = "scene-note-line";
+          const noteText = (scene.note || "").trim();
+          if (noteText) {
+            const combinedNote = noteText.replace(/\s+/g, " ");
+            noteLine.textContent = combinedNote.slice(0, 120);
+          } else {
+            noteLine.textContent = "";
+          }
+
+          const goal = (scene.goal || "").trim();
+          const conflict = (scene.conflict || "").trim();
+          const chars = (scene.characters || "").trim();
+          const tags = (scene.tags || "").trim();
+
+          if (goal) {
+            const goalLine = document.createElement("div");
+            goalLine.className = "scene-small-line";
+            goalLine.textContent = "G: " + goal;
+            li.appendChild(goalLine);
+          }
+          if (conflict) {
+            const cLine = document.createElement("div");
+            cLine.className = "scene-small-line";
+            cLine.textContent = "C: " + conflict;
+            li.appendChild(cLine);
+          }
+
+          const tagsLine = document.createElement("div");
+          tagsLine.className = "scene-small-line";
+          let smallLine = "";
+          if (chars) smallLine += "[" + chars + "]";
+          if (tags) {
+            if (smallLine) smallLine += " ";
+            smallLine += tags;
+          }
+          tagsLine.textContent = smallLine;
+
+          li.appendChild(titleRow);
+          li.appendChild(noteLine);
+          if (goal || conflict || smallLine) {
+            if (smallLine) li.appendChild(tagsLine);
+          }
+
+          li.addEventListener("click", e => {
+            if (e.target.closest(".scene-actions")) return;
+            selectedSceneId = scene.id;
+            selectedChapterId = scene.chapterId;
+            renderChaptersAndScenes();
+            renderEditor();
+          });
+
+          if (dragEnabled) {
+            li.draggable = true;
+            li.addEventListener("dragstart", handleSceneDragStart);
+            li.addEventListener("dragover", handleSceneDragOver);
+            li.addEventListener("drop", handleSceneDrop);
+          } else {
+            li.draggable = false;
+          }
+
+          ul.appendChild(li);
+        });
+
+        block.appendChild(header);
+        block.appendChild(ul);
+        chaptersContainer.appendChild(block);
+      });
+    }
+
+    function renderEditor() {
+      const scene = getSceneById(selectedSceneId);
+      if (!scene) {
+        titleInput.value = "";
+        tagsInput.value = "";
+        charsInput.value = "";
+        noteInput.value = "";
+        goalInput.value = "";
+        conflictInput.value = "";
+        textInput.value = "";
+        colorSelect.value = "none";
+        statusInfo.textContent = "No scene selected";
+        wordCountEl.textContent = "0 words";
+        return;
+      }
+      titleInput.value = scene.title;
+      tagsInput.value = scene.tags || "";
+      charsInput.value = scene.characters || "";
+      noteInput.value = scene.note || "";
+      goalInput.value = scene.goal || "";
+      conflictInput.value = scene.conflict || "";
+      textInput.value = scene.text;
+      colorSelect.value = scene.color || "none";
+      const ch = getChapterById(scene.chapterId);
+      const chName = ch ? ch.title : "Unknown chapter";
+      statusInfo.textContent = `${chName} – ${scene.title}`;
+      wordCountEl.textContent = countWords(scene.text) + " words";
+      modeSelect.value = data.mode || "novel";
+    }
+
+    function addChapter() {
+      const idx = data.chapters.length;
+      const chId = generateId();
+      const ch = { id: chId, title: "Chapter " + (idx + 1), order: idx };
+      data.chapters.push(ch);
+      selectedChapterId = chId;
+      saveProjectData();
+      renderChaptersAndScenes();
+    }
+
+    function renameChapter(chId) {
+      const c = getChapterById(chId);
+      if (!c) return;
+      const newName = prompt("Chapter title:", c.title);
+      if (!newName) return;
+      c.title = newName;
+      saveProjectData();
+      renderChaptersAndScenes();
+      renderEditor();
+    }
+
+    function deleteChapter(chId) {
+      const confirmed = confirm("Delete this chapter and ALL its scenes?");
+      if (!confirmed) return;
+      data.scenes = data.scenes.filter(s => s.chapterId !== chId);
+      const idx = data.chapters.findIndex(c => c.id === chId);
+      if (idx !== -1) data.chapters.splice(idx, 1);
+
+      if (data.chapters.length === 0) {
+        createDefaultData();
+      } else {
+        const sorted = data.chapters.slice().sort((a,b)=>a.order-b.order);
+        sorted.forEach((c,i)=> c.order = i);
+        data.chapters = sorted;
+        selectedChapterId = sorted[0].id;
+        const firstScene = getScenesByChapter(selectedChapterId)[0] || data.scenes[0];
+        selectedSceneId = firstScene ? firstScene.id : null;
+      }
+      saveProjectData();
+      rebuildCharacterFilter();
+      rebuildTagFilter();
+      renderChaptersAndScenes();
+      renderEditor();
+    }
+
+    function addScene(chIdOptional) {
+      let chId = chIdOptional;
+      if (!chId) {
+        if (!selectedChapterId && data.chapters.length > 0) {
+          selectedChapterId = data.chapters.slice().sort((a,b)=>a.order-b.order)[0].id;
+        }
+        chId = selectedChapterId;
+      }
+      if (!chId && data.chapters.length === 0) {
+        addChapter();
+        chId = data.chapters[0].id;
+      }
+      const existing = getScenesByChapter(chId);
+      const nextOrder = existing.length > 0 ? (existing[existing.length - 1].order + 1) : 0;
+      const sceneId = generateId();
+      const sc = {
+        id: sceneId,
+        chapterId: chId,
+        title: "New Scene " + (existing.length + 1),
+        text: "",
+        tags: "",
+        characters: "",
+        note: "",
+        goal: "",
+        conflict: "",
+        color: "none",
+        order: nextOrder,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      data.scenes.push(sc);
+      selectedChapterId = chId;
+      selectedSceneId = sceneId;
+      saveProjectData();
+      rebuildCharacterFilter();
+      rebuildTagFilter();
+      renderChaptersAndScenes();
+      renderEditor();
+      titleInput.focus();
+      titleInput.select();
+    }
+
+    function deleteScene(sceneId) {
+      const idx = data.scenes.findIndex(s => s.id === sceneId);
+      if (idx === -1) return;
+      const removed = data.scenes[idx];
+      data.scenes.splice(idx, 1);
+      normalizeSceneOrders();
+      const sameChapter = getScenesByChapter(removed.chapterId);
+      if (sameChapter.length > 0) {
+        selectedSceneId = sameChapter[0].id;
+        selectedChapterId = removed.chapterId;
+      } else if (data.scenes.length > 0) {
+        selectedSceneId = data.scenes[0].id;
+        selectedChapterId = data.scenes[0].chapterId;
+      } else {
+        selectedSceneId = null;
+      }
+      saveProjectData();
+      rebuildCharacterFilter();
+      rebuildTagFilter();
+      renderChaptersAndScenes();
+      renderEditor();
+    }
+
+    function countWords(text) {
+      if (!text) return 0;
+      return text.trim().split(/\s+/).filter(Boolean).length;
+    }
+
+    function handleSceneDragStart(e) {
+      if (e.target.closest('[data-editable="true"]')) {
+        e.preventDefault();
+        return;
+      }
+      dragSceneId = e.currentTarget.dataset.sceneId;
+      e.dataTransfer.effectAllowed = "move";
+    }
+    function handleSceneDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+    }
+    function handleSceneDrop(e) {
+      e.preventDefault();
+      const targetSceneId = e.currentTarget.dataset.sceneId;
+      if (!dragSceneId || dragSceneId === targetSceneId) {
+        dragSceneId = null;
+        return;
+      }
+      moveSceneBetweenChapters(dragSceneId, targetSceneId, null);
+      dragSceneId = null;
+      renderChaptersAndScenes();
+      renderEditor();
+      buildKanbanBoard();
+    }
+
+    function handleChapterDragStart(e) {
+      const block = e.currentTarget;
+      chapterDragSrcId = block.dataset.chapterId;
+      e.dataTransfer.effectAllowed = "move";
+    }
+    function handleChapterDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+    }
+    function handleChapterDrop(e) {
+      e.preventDefault();
+      const targetBlock = e.currentTarget;
+      const targetId = targetBlock.dataset.chapterId;
+      if (!chapterDragSrcId || chapterDragSrcId === targetId) {
+        chapterDragSrcId = null;
+        return;
+      }
+      const sorted = data.chapters.slice().sort((a,b)=>a.order-b.order);
+      const fromIndex = sorted.findIndex(c => c.id === chapterDragSrcId);
+      const toIndex = sorted.findIndex(c => c.id === targetId);
+      if (fromIndex === -1 || toIndex === -1) {
+        chapterDragSrcId = null;
+        return;
+      }
+      const [moved] = sorted.splice(fromIndex,1);
+      sorted.splice(toIndex,0,moved);
+      sorted.forEach((c,i)=> c.order = i);
+      data.chapters = sorted;
+      chapterDragSrcId = null;
+      saveProjectData();
+      renderChaptersAndScenes();
+      renderEditor();
+      buildKanbanBoard();
+    }
+
+    function moveSceneBetweenChapters(srcId, targetId, targetChapterIdOverride) {
+      const srcScene = getSceneById(srcId);
+      const targetScene = targetId ? getSceneById(targetId) : null;
+      if (!srcScene) return;
+
+      const oldChapterId = srcScene.chapterId;
+      const newChapterId = targetChapterIdOverride || (targetScene ? targetScene.chapterId : oldChapterId);
+      srcScene.chapterId = newChapterId;
+
+      let scenes = data.scenes
+        .filter(s => s.chapterId === newChapterId && s.id !== srcScene.id)
+        .sort((a,b) => (a.order ?? 0) - (b.order ?? 0) || (a.createdAt ?? 0) - (b.createdAt ?? 0));
+
+      if (targetScene) {
+        const insertIndex = scenes.findIndex(s => s.id === targetScene.id);
+        if (insertIndex === -1) {
+          scenes.push(srcScene);
+        } else {
+          scenes.splice(insertIndex, 0, srcScene);
+        }
+      } else {
+        scenes.push(srcScene);
+      }
+      scenes.forEach((s, idx) => { s.order = idx; });
+
+      if (oldChapterId !== newChapterId) {
+        const oldScenes = data.scenes
+          .filter(s => s.chapterId === oldChapterId)
+          .sort((a,b) => (a.order ?? 0) - (b.order ?? 0) || (a.createdAt ?? 0) - (b.createdAt ?? 0));
+        oldScenes.forEach((s, idx) => { s.order = idx; });
+      }
+
+      selectedSceneId = srcScene.id;
+      selectedChapterId = srcScene.chapterId;
+      saveProjectData();
+    }
+
+    titleInput.addEventListener("input", () => {
+      const scene = getSceneById(selectedSceneId);
+      if (!scene) return;
+      scene.title = titleInput.value;
+      scene.updatedAt = Date.now();
+      saveProjectData();
+      renderChaptersAndScenes();
+      const ch = getChapterById(scene.chapterId);
+      const chName = ch ? ch.title : "Unknown chapter";
+      statusInfo.textContent = `${chName} – ${scene.title}`;
+    });
+
+    tagsInput.addEventListener("input", () => {
+      const scene = getSceneById(selectedSceneId);
+      if (!scene) return;
+      scene.tags = tagsInput.value;
+      scene.updatedAt = Date.now();
+      saveProjectData();
+      rebuildTagFilter();
+      renderChaptersAndScenes();
+      buildKanbanBoard();
+    });
+
+    charsInput.addEventListener("input", () => {
+      const scene = getSceneById(selectedSceneId);
+      if (!scene) return;
+      scene.characters = charsInput.value;
+      scene.updatedAt = Date.now();
+      saveProjectData();
+      rebuildCharacterFilter();
+      renderChaptersAndScenes();
+      buildKanbanBoard();
+    });
+
+    noteInput.addEventListener("input", () => {
+      const scene = getSceneById(selectedSceneId);
+      if (!scene) return;
+      scene.note = noteInput.value;
+      scene.updatedAt = Date.now();
+      saveProjectData();
+      renderChaptersAndScenes();
+      buildKanbanBoard();
+    });
+
+    goalInput.addEventListener("input", () => {
+      const scene = getSceneById(selectedSceneId);
+      if (!scene) return;
+      scene.goal = goalInput.value;
+      scene.updatedAt = Date.now();
+      saveProjectData();
+      renderChaptersAndScenes();
+      buildKanbanBoard();
+    });
+
+    conflictInput.addEventListener("input", () => {
+      const scene = getSceneById(selectedSceneId);
+      if (!scene) return;
+      scene.conflict = conflictInput.value;
+      scene.updatedAt = Date.now();
+      saveProjectData();
+      renderChaptersAndScenes();
+      buildKanbanBoard();
+    });
+
+    colorSelect.addEventListener("change", () => {
+      const scene = getSceneById(selectedSceneId);
+      if (!scene) return;
+      scene.color = colorSelect.value;
+      scene.updatedAt = Date.now();
+      saveProjectData();
+      renderChaptersAndScenes();
+      buildKanbanBoard();
+    });
+
+    textInput.addEventListener("input", () => {
+      const scene = getSceneById(selectedSceneId);
+      if (!scene) return;
+      scene.text = textInput.value;
+      scene.updatedAt = Date.now();
+      saveProjectData();
+      wordCountEl.textContent = countWords(scene.text) + " words";
+      renderChaptersAndScenes();
+    });
+
+    modeSelect.addEventListener("change", () => {
+      data.mode = modeSelect.value;
+      saveProjectData();
+    });
+
+    characterFilter.addEventListener("change", () => {
+      renderChaptersAndScenes();
+      renderEditor();
+      buildKanbanBoard();
+    });
+    tagFilter.addEventListener("change", () => {
+      renderChaptersAndScenes();
+      renderEditor();
+      buildKanbanBoard();
+    });
+
+    function newProject() {
+      const name = prompt("New project name:", "New Project");
+      if (!name) return;
+      const id = "proj-" + generateId();
+      projectIndex.projects.push({ id, name });
+      projectIndex.currentProjectId = id;
+      saveProjectIndex();
+      createDefaultData();
+      saveProjectData();
+      renderProjectSelect();
+      modeSelect.value = data.mode || "novel";
+      rebuildCharacterFilter();
+      rebuildTagFilter();
+      renderChaptersAndScenes();
+      renderEditor();
+      buildKanbanBoard();
+    }
+
+    function renameProject() {
+      const pid = projectIndex.currentProjectId;
+      if (!pid) return;
+      const p = projectIndex.projects.find(x => x.id === pid);
+      if (!p) return;
+      const newName = prompt("Project name:", p.name);
+      if (!newName) return;
+      p.name = newName;
+      saveProjectIndex();
+      renderProjectSelect();
+    }
+
+    function deleteProject() {
+      const pid = projectIndex.currentProjectId;
+      if (!pid) return;
+      const p = projectIndex.projects.find(x => x.id === pid);
+      const name = p ? p.name : pid;
+      const confirmed = confirm(`Delete project "${name}" and all its data?`);
+      if (!confirmed) return;
+
+      localStorage.removeItem(getProjectStorageKey(pid));
+      projectIndex.projects = projectIndex.projects.filter(x => x.id !== pid);
+
+      if (projectIndex.projects.length === 0) {
+        const newId = "proj-" + generateId();
+        const newName = "New Project";
+        projectIndex.projects.push({ id: newId, name: newName });
+        projectIndex.currentProjectId = newId;
+        saveProjectIndex();
+        createDefaultData();
+        saveProjectData();
+      } else {
+        projectIndex.currentProjectId = projectIndex.projects[0].id;
+        saveProjectIndex();
+        loadProjectData(projectIndex.currentProjectId);
+      }
+
+      renderProjectSelect();
+      modeSelect.value = data.mode || "novel";
+      rebuildCharacterFilter();
+      rebuildTagFilter();
+      renderChaptersAndScenes();
+      renderEditor();
+      buildKanbanBoard();
+    }
+
+    projectSelect.addEventListener("change", () => {
+      switchProject(projectSelect.value);
+    });
+    newProjectBtn.addEventListener("click", newProject);
+    renameProjectBtn.addEventListener("click", renameProject);
+    deleteProjectBtn.addEventListener("click", deleteProject);
+
+    addChapterBtn.addEventListener("click", () => addChapter());
+    addSceneBtn.addEventListener("click", () => addScene());
+    quickAddCardBtn.addEventListener("click", () => addScene());
+
+    backupBtn.addEventListener("click", () => {
+      const filename = buildExportFilename("json");
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    importBtn.addEventListener("click", () => {
+      importFile.value = "";
+      importFile.click();
+    });
+
+    importFile.addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          const imported = JSON.parse(ev.target.result);
+          if (imported && Array.isArray(imported.chapters) && Array.isArray(imported.scenes)) {
+            data = imported;
+            if (!data.mode) data.mode = "novel";
+            data.chapters.forEach((c,i) => {
+              if (typeof c.order !== "number") c.order = i;
+            });
+            data.scenes.forEach(s => {
+              if (s.tags === undefined) s.tags = "";
+              if (s.note === undefined) s.note = "";
+              if (s.color === undefined) s.color = "none";
+              if (s.characters === undefined) s.characters = "";
+              if (s.goal === undefined) s.goal = "";
+              if (s.conflict === undefined) s.conflict = "";
+              if (typeof s.order !== "number") s.order = 0;
+            });
+            normalizeSceneOrders();
+            if (data.chapters.length === 0) {
+              createDefaultData();
+            } else {
+              const sorted = data.chapters.slice().sort((a,b)=>a.order-b.order);
+              sorted.forEach((c,i)=> c.order = i);
+              data.chapters = sorted;
+              selectedChapterId = sorted[0].id;
+              const firstScene = getScenesByChapter(selectedChapterId)[0] || data.scenes[0];
+              selectedSceneId = firstScene ? firstScene.id : null;
+            }
+            saveProjectData();
+            rebuildCharacterFilter();
+            rebuildTagFilter();
+            renderChaptersAndScenes();
+            renderEditor();
+            buildKanbanBoard();
+            alert("Import success.");
+          } else {
+            alert("Invalid file format.");
+          }
+        } catch (err) {
+          console.error(err);
+          alert("Failed to import file.");
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function buildPlainText(mode) {
+      const sortedChapters = data.chapters.slice().sort((a,b)=>a.order-b.order);
+      let out = "";
+      sortedChapters.forEach((ch, idx) => {
+        const chScenes = getScenesByChapter(ch.id);
+        if (mode === "novel") {
+          out += `Chapter ${idx + 1}: ${ch.title}\n\n`;
+        } else {
+          out += `CHAPTER ${idx + 1} - ${ch.title.toUpperCase()}\n\n`;
+        }
+        chScenes.forEach((s, si) => {
+          if (mode === "novel") {
+            out += `Scene ${si + 1}: ${s.title}\n`;
+          } else {
+            out += `SCENE ${si + 1}: ${s.title.toUpperCase()}\n`;
+          }
+          if (s.characters && s.characters.trim()) {
+            out += `Characters: ${s.characters.trim()}\n`;
+          }
+          if (s.tags && s.tags.trim()) {
+            out += `Tags: ${s.tags.trim()}\n`;
+          }
+          if (s.goal && s.goal.trim()) {
+            out += `Goal: ${s.goal.trim()}\n`;
+          }
+          if (s.conflict && s.conflict.trim()) {
+            out += `Conflict: ${s.conflict.trim()}\n`;
+          }
+          if (s.note && s.note.trim()) {
+            out += `Note: ${s.note.trim()}\n`;
+          }
+          out += "\n" + (s.text || "") + "\n\n";
+        });
+        out += "\n";
+      });
+      return out.trim() + "\n";
+    }
+
+    function buildMarkdown() {
+      const sortedChapters = data.chapters.slice().sort((a,b)=>a.order-b.order);
+      let out = "";
+      sortedChapters.forEach((ch, idx) => {
+        out += `# Chapter ${idx + 1}: ${ch.title}\n\n`;
+        const chScenes = getScenesByChapter(ch.id);
+        chScenes.forEach((s, si) => {
+          out += `## Scene ${si + 1}: ${s.title}\n\n`;
+          if (s.characters && s.characters.trim()) {
+            out += `*Characters:* ${s.characters.trim()}\n\n`;
+          }
+          if (s.tags && s.tags.trim()) {
+            out += `*Tags:* ${s.tags.trim()}\n\n`;
+          }
+          if (s.goal && s.goal.trim()) {
+            out += `*Goal:* ${s.goal.trim()}\n\n`;
+          }
+          if (s.conflict && s.conflict.trim()) {
+            out += `*Conflict:* ${s.conflict.trim()}\n\n`;
+          }
+          if (s.note && s.note.trim()) {
+            out += `> ${s.note.trim()}\n\n`;
+          }
+          if (s.text) {
+            out += s.text + "\n\n";
+          }
+        });
+        out += "\n";
+      });
+      return out.trim() + "\n";
+    }
+
+    function buildWordHTML() {
+      const sortedChapters = data.chapters.slice().sort((a,b)=>a.order-b.order);
+      let body = "";
+      sortedChapters.forEach((ch, idx) => {
+        body += `<h1>Chapter ${idx + 1}: ${escapeHtml(ch.title)}</h1>`;
+        const chScenes = getScenesByChapter(ch.id);
+        chScenes.forEach((s, si) => {
+          body += `<h2>Scene ${si + 1}: ${escapeHtml(s.title)}</h2>`;
+          if (s.characters && s.characters.trim()) {
+            body += `<p><em>Characters: ${escapeHtml(s.characters.trim())}</em></p>`;
+          }
+          if (s.tags && s.tags.trim()) {
+            body += `<p><em>Tags: ${escapeHtml(s.tags.trim())}</em></p>`;
+          }
+          if (s.goal && s.goal.trim()) {
+            body += `<p><em>Goal: ${escapeHtml(s.goal.trim())}</em></p>`;
+          }
+          if (s.conflict && s.conflict.trim()) {
+            body += `<p><em>Conflict: ${escapeHtml(s.conflict.trim())}</em></p>`;
+          }
+          if (s.note && s.note.trim()) {
+            body += `<p><em>Note: ${escapeHtml(s.note.trim())}</em></p>`;
+          }
+          if (s.text) {
+            const paragraphs = escapeHtml(s.text).split(/\n{2,}/);
+            paragraphs.forEach(p => {
+              if (p.trim()) {
+                body += `<p>${p.replace(/\n/g, "<br/>")}</p>`;
+              }
+            });
+          }
+        });
+      });
+
+      const html =
+        `<!DOCTYPE html><html><head><meta charset="UTF-8">` +
+        `<title>Manuscript</title>` +
+        `<style>
+          body { font-family: "Times New Roman", serif; font-size: 12pt; line-height: 1.5; }
+          h1 { font-size: 18pt; margin-top: 24pt; }
+          h2 { font-size: 14pt; margin-top: 18pt; }
+          p { margin: 0 0 8pt 0; }
+        </style>` +
+        `</head><body>${body}</body></html>`;
+      return html;
+    }
+
+    exportTxtBtn.addEventListener("click", () => {
+      const mode = data.mode || "novel";
+      const txt = buildPlainText(mode);
+      const filename = buildExportFilename("txt");
+      const blob = new Blob([txt], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    exportMdBtn.addEventListener("click", () => {
+      const md = buildMarkdown();
+      const filename = buildExportFilename("md");
+      const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    exportDocBtn.addEventListener("click", () => {
+      const html = buildWordHTML();
+      const filename = buildExportFilename("doc");
+      const blob = new Blob([html], { type: "application/msword;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    // Kanban
+    const colorCycle = ["none", "blue", "green", "yellow", "red", "purple", "gray"];
+
+    function cycleSceneColor(scene) {
+      const idx = colorCycle.indexOf(scene.color || "none");
+      const next = colorCycle[(idx + 1) % colorCycle.length];
+      scene.color = next;
+      scene.updatedAt = Date.now();
+      saveProjectData();
+    }
+
+    function buildKanbanBoard() {
+      kanbanBoard.innerHTML = "";
+      const sortedChapters = data.chapters.slice().sort((a,b)=>a.order-b.order);
+      sortedChapters.forEach(ch => {
+        const col = document.createElement("div");
+        col.className = "kanban-column";
+        col.dataset.chapterId = ch.id;
+
+        const header = document.createElement("div");
+        header.className = "kanban-column-header";
+        const titleSpan = document.createElement("span");
+        titleSpan.textContent = ch.title;
+
+        const countSpan = document.createElement("span");
+        const count = getScenesByChapter(ch.id).length;
+        countSpan.textContent = count;
+
+        const addBtn = document.createElement("button");
+        addBtn.className = "kanban-color-btn";
+        addBtn.textContent = "+";
+        addBtn.title = "Add scene in this chapter";
+        addBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          addScene(ch.id);
+          buildKanbanBoard();
+        });
+
+        const rightWrap = document.createElement("div");
+        rightWrap.style.display = "flex";
+        rightWrap.style.alignItems = "center";
+        rightWrap.style.gap = "4px";
+        rightWrap.appendChild(countSpan);
+        rightWrap.appendChild(addBtn);
+
+        header.appendChild(titleSpan);
+        header.appendChild(rightWrap);
+
+        const body = document.createElement("div");
+        body.className = "kanban-column-body";
+        body.dataset.chapterId = ch.id;
+        body.addEventListener("dragover", e => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+        });
+        body.addEventListener("drop", e => {
+          e.preventDefault();
+          if (!dragSceneId) return;
+          moveSceneBetweenChapters(dragSceneId, null, ch.id);
+          dragSceneId = null;
+          renderChaptersAndScenes();
+          renderEditor();
+          buildKanbanBoard();
+        });
+
+        const scenes = getScenesByChapter(ch.id);
+        scenes.forEach(scene => {
+          const card = document.createElement("div");
+          const colorClass = scene.color ? (" color-" + scene.color) : " color-none";
+          card.className = "kanban-card" + (scene.id === selectedSceneId ? " selected" : "") + colorClass;
+          card.dataset.sceneId = scene.id;
+          card.dataset.chapterId = ch.id;
+          card.draggable = true;
+
+          card.addEventListener("dragstart", e => {
+            if (e.target.closest('[data-editable="true"]')) {
+              e.preventDefault();
+              return;
+            }
+            dragSceneId = scene.id;
+            e.dataTransfer.effectAllowed = "move";
+          });
+          card.addEventListener("dragover", e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+          });
+          card.addEventListener("drop", e => {
+            e.preventDefault();
+            const targetSceneId = card.dataset.sceneId;
+            if (!dragSceneId || dragSceneId === targetSceneId) {
+              dragSceneId = null;
+              return;
+            }
+            moveSceneBetweenChapters(dragSceneId, targetSceneId, null);
+            dragSceneId = null;
+            renderChaptersAndScenes();
+            renderEditor();
+            buildKanbanBoard();
+          });
+
+          card.addEventListener("click", e => {
+            if (e.target.closest(".kanban-color-btn")) return;
+            if (e.target.closest('[data-editable="true"]')) return;
+            selectedSceneId = scene.id;
+            selectedChapterId = scene.chapterId;
+            renderChaptersAndScenes();
+            renderEditor();
+            buildKanbanBoard();
+          });
+
+          const titleRow = document.createElement("div");
+          titleRow.className = "kanban-card-title-row";
+          const tSpanCard = document.createElement("span");
+          tSpanCard.textContent = scene.title || "Untitled";
+          tSpanCard.contentEditable = "true";
+          tSpanCard.dataset.editable = "true";
+          tSpanCard.addEventListener("click", e => e.stopPropagation());
+          tSpanCard.addEventListener("keydown", e => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              tSpanCard.blur();
+            }
+          });
+          tSpanCard.addEventListener("blur", () => {
+            const newTitle = tSpanCard.textContent.trim() || "Untitled";
+            if (newTitle !== scene.title) {
+              scene.title = newTitle;
+              scene.updatedAt = Date.now();
+              saveProjectData();
+              renderChaptersAndScenes();
+              renderEditor();
+              buildKanbanBoard();
+            }
+          });
+
+          const colorBtn = document.createElement("button");
+          colorBtn.className = "kanban-color-btn";
+          colorBtn.textContent = "◆";
+          colorBtn.title = "Change color";
+          colorBtn.addEventListener("click", e => {
+            e.stopPropagation();
+            cycleSceneColor(scene);
+            renderChaptersAndScenes();
+            buildKanbanBoard();
+          });
+
+          titleRow.appendChild(tSpanCard);
+          titleRow.appendChild(colorBtn);
+
+          const noteDiv = document.createElement("div");
+          noteDiv.className = "kanban-card-note";
+          noteDiv.contentEditable = "true";
+          noteDiv.dataset.editable = "true";
+          const noteText = (scene.note || "").trim();
+          noteDiv.textContent = noteText ? noteText : "";
+          noteDiv.addEventListener("click", e => e.stopPropagation());
+          noteDiv.addEventListener("blur", () => {
+            const newNote = noteDiv.innerText.replace(/\s+$/,"");
+            if (newNote !== scene.note) {
+              scene.note = newNote;
+              scene.updatedAt = Date.now();
+              saveProjectData();
+              renderChaptersAndScenes();
+              renderEditor();
+              buildKanbanBoard();
+            }
+          });
+
+          const goal = (scene.goal || "").trim();
+          const conflict = (scene.conflict || "").trim();
+          const chars = (scene.characters || "").trim();
+          const tags = (scene.tags || "").trim();
+
+          const smallGoal = document.createElement("div");
+          smallGoal.className = "kanban-card-small";
+          smallGoal.textContent = goal ? ("G: " + goal) : "";
+          const smallConflict = document.createElement("div");
+          smallConflict.className = "kanban-card-small";
+          smallConflict.textContent = conflict ? ("C: " + conflict) : "";
+
+          const smallMeta = document.createElement("div");
+          smallMeta.className = "kanban-card-small";
+          let line = "";
+          if (chars) line += "[" + chars + "]";
+          if (tags) {
+            if (line) line += " ";
+            line += tags;
+          }
+          smallMeta.textContent = line;
+
+          card.appendChild(titleRow);
+          card.appendChild(noteDiv);
+          if (goal) card.appendChild(smallGoal);
+          if (conflict) card.appendChild(smallConflict);
+          if (line) card.appendChild(smallMeta);
+
+          body.appendChild(card);
+        });
+
+        col.appendChild(header);
+        col.appendChild(body);
+        kanbanBoard.appendChild(col);
+      });
+    }
+
+    function openKanban() {
+      buildKanbanBoard();
+      kanbanOverlay.style.display = "flex";
+    }
+    function closeKanban() {
+      kanbanOverlay.style.display = "none";
+      dragSceneId = null;
+    }
+
+    kanbanBtn.addEventListener("click", openKanban);
+    kanbanCloseBtn.addEventListener("click", closeKanban);
+    kanbanOverlay.addEventListener("click", e => {
+      if (e.target === kanbanOverlay) closeKanban();
+    });
+    kanbanAddCardBtn.addEventListener("click", () => {
+      addScene();
+      buildKanbanBoard();
+    });
+
+    function buildKeyCombo(e) {
+      const parts = [];
+      if (e.metaKey) parts.push("Meta");
+      if (e.ctrlKey) parts.push("Control");
+      if (e.shiftKey) parts.push("Shift");
+      if (e.altKey) parts.push("Alt");
+      let key = e.key;
+      if (key.length === 1) {
+        key = key.toUpperCase();
+      }
+      parts.push(key);
+      return parts.join("+");
+    }
+
+    function hotkeyMatches(combo, hotkeyDef) {
+      if (!hotkeyDef || !hotkeyDef.keys) return false;
+      return hotkeyDef.keys.includes(combo);
+    }
+
+    function getVisibleScenesFlat() {
+      const chaptersSorted = data.chapters.slice().sort((a,b)=>a.order-b.order);
+      const list = [];
+      chaptersSorted.forEach(ch => {
+        const scenes = getScenesByChapter(ch.id).filter(scenePassesFilters);
+        scenes.forEach(s => list.push(s));
+      });
+      return list;
+    }
+
+    function selectNextScene(direction) {
+      const flat = getVisibleScenesFlat();
+      if (flat.length === 0) return;
+      if (!selectedSceneId) {
+        selectedSceneId = flat[0].id;
+        selectedChapterId = flat[0].chapterId;
+        renderChaptersAndScenes();
+        renderEditor();
+        return;
+      }
+      const idx = flat.findIndex(s => s.id === selectedSceneId);
+      if (idx === -1) {
+        selectedSceneId = flat[0].id;
+        selectedChapterId = flat[0].chapterId;
+      } else {
+        let nextIdx = idx + direction;
+        if (nextIdx < 0) nextIdx = 0;
+        if (nextIdx >= flat.length) nextIdx = flat.length - 1;
+        selectedSceneId = flat[nextIdx].id;
+        selectedChapterId = flat[nextIdx].chapterId;
+      }
+      renderChaptersAndScenes();
+      renderEditor();
+      buildKanbanBoard();
+    }
+
+    document.addEventListener("keydown", e => {
+      const combo = buildKeyCombo(e);
+
+      const target = e.target;
+      const tag = (target.tagName || "").toLowerCase();
+      const isEditable = target.isContentEditable || tag === "input" || tag === "textarea";
+
+      const useMetaCtrl = e.metaKey || e.ctrlKey;
+      const isAltArrow = e.altKey && (e.key === "ArrowDown" || e.key === "ArrowUp");
+
+      if (hotkeyMatches(combo, HOTKEYS.toggleBoard)) {
+        e.preventDefault();
+        if (kanbanOverlay.style.display === "flex") {
+          closeKanban();
+        } else {
+          openKanban();
+        }
+        return;
+      }
+
+      if (hotkeyMatches(combo, HOTKEYS.newScene) && useMetaCtrl) {
+        e.preventDefault();
+        addScene();
+        return;
+      }
+
+      if (hotkeyMatches(combo, HOTKEYS.newChapter) && useMetaCtrl) {
+        e.preventDefault();
+        addChapter();
+        return;
+      }
+
+      if (!isEditable && isAltArrow) {
+        if (hotkeyMatches(combo, HOTKEYS.nextScene)) {
+          e.preventDefault();
+          selectNextScene(+1);
+          return;
+        }
+        if (hotkeyMatches(combo, HOTKEYS.prevScene)) {
+          e.preventDefault();
+          selectNextScene(-1);
+          return;
+        }
+      }
+    });
+
+    loadProjectIndex();
+    renderProjectSelect();
+    loadProjectData(projectIndex.currentProjectId);
+    modeSelect.value = data.mode || "novel";
+    renderChaptersAndScenes();
+    renderEditor();
+    buildKanbanBoard();
+  </script>
+</body>
+</html>
