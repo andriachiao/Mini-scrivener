@@ -1,151 +1,140 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Mini Scrivener - Zen Cloud</title>
+  <title>Mini Scrivener v2 – Cloud Enhanced</title>
   <script src="https://unpkg.com/dropbox/dist/Dropbox-sdk.min.js"></script>
   <style>
-    /* 卡片式 UI 樣式 */
-    :root {
-      --sidebar-w: 260px;
-      --card-max-w: 850px;
-      --bg-color: #f5f7f9;
-    }
-    body { margin: 0; font-family: sans-serif; background: var(--bg-color); display: flex; height: 100vh; }
+    /* 這裡保留你原始的所有 CSS 樣式 */
+    /* ... 為了簡潔，我略過了你原始 CSS 的重複部分 ... */
     
-    /* 側邊欄細化 */
-    .sidebar { 
-      width: var(--sidebar-w); background: #1a1a1a; color: #efefef; 
-      display: flex; flex-direction: column; border-right: 1px solid #333;
+    /* 額外添加：Dropbox 專用控制 UI */
+    .dbx-controls {
+      padding: 8px 10px;
+      border-bottom: 1px solid #374151;
+      background: #1f2937;
     }
-    .sidebar-header { padding: 15px; border-bottom: 1px solid #333; }
-    
-    /* 寫作卡片居中 */
-    .viewport { flex: 1; display: flex; justify-content: center; padding: 40px; overflow-y: auto; }
-    .writing-card {
-      width: 100%; max-width: var(--card-max-w); min-height: 100%;
-      background: #fff; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      display: flex; flex-direction: column; padding: 50px 60px;
+    .dbx-btn {
+      background: #2563eb; color: white; border: none; 
+      padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;
+      width: 100%; margin-bottom: 5px;
     }
-
-    #editor { 
-      font-size: 18px; line-height: 1.8; color: #333; outline: none; 
-      flex: 1; min-height: 500px;
-    }
-    #title-input { 
-      font-size: 28px; font-weight: bold; border: none; outline: none; 
-      margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 10px;
-    }
-
-    /* 按鈕樣式 */
-    .btn { cursor: pointer; padding: 6px 12px; border-radius: 4px; border: none; font-size: 12px; }
-    .btn-cloud { background: #0061ff; color: white; width: 100%; margin-bottom: 8px; }
-    .btn-release { background: #10b981; color: white; margin-top: 10px; }
-    .status-dot { font-size: 11px; color: #888; margin-top: 5px; }
+    .dbx-btn.release { background: #059669; }
+    .dbx-status { font-size: 10px; color: #9ca3af; text-align: center; }
   </style>
 </head>
 <body>
 
-<aside class="sidebar">
-  <div class="sidebar-header">
-    <div style="font-weight: bold; margin-bottom: 10px;">Mini Scrivener v2</div>
-    <button id="dbx-auth-btn" class="btn btn-cloud" onclick="doAuth()">🔗 連接 Dropbox</button>
-    <div id="sync-status" class="status-dot">本地模式</div>
-    
-    <button id="save-release-btn" class="btn btn-release" onclick="manualRelease()" style="display:none;">💾 保存正式版本</button>
-  </div>
-  
-  <div id="project-tree" style="flex:1; padding: 10px; font-size: 13px;">
+  <div class="app">
+    <div class="sidebar">
+      <div class="dbx-controls">
+        <button id="dbx-login-btn" class="dbx-btn" onclick="doDropboxLogin()">🔗 連接 Dropbox</button>
+        <button id="dbx-release-btn" class="dbx-btn release" style="display:none;" onclick="saveOfficialVersion()">💾 保存正式版本</button>
+        <div id="dbx-msg" class="dbx-status">本地模式 (未同步)</div>
+      </div>
+
+      <div class="sidebar-header">
+        </div>
+      
+      <div id="tree-container" class="tree-container">
+        </div>
     </div>
-</aside>
 
-<main class="viewport">
-  <article class="writing-card">
-    <input type="text" id="title-input" placeholder="輸入標題...">
-    <div id="editor" contenteditable="true" placeholder="開始寫作..."></div>
-  </article>
-</main>
+    <div class="main">
+      <div class="main-header">
+        <input type="text" id="scene-title-input" placeholder="Scene Title..." />
+        </div>
+      <div id="editor" contenteditable="true"></div>
+    </div>
+  </div>
 
-<script>
-const APP_KEY = '2zshj5fwkxe18e6';
-const dbxAuth = new Dropbox.DropboxAuth({ clientId: APP_KEY });
-let dbx = null;
-let autoSaveTimer;
+  <script>
+    // --- 核心變量 ---
+    const CLIENT_ID = '2zshj5fwkxe18e6';
+    const REDIRECT_URI = window.location.origin + window.location.pathname;
+    const dbxAuth = new Dropbox.DropboxAuth({ clientId: CLIENT_ID });
+    let dbx = null;
+    let autoSaveTimer = null;
 
-// 1. 初始化授權檢查
-async function initApp() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    const redirectUri = window.location.origin + window.location.pathname;
+    // --- 1. 初始化與 OAuth 處理 ---
+    async function initCloud() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
 
-    if (code) {
-        const response = await dbxAuth.getCodeChallengeResponse(code, redirectUri);
-        localStorage.setItem('dbx_token', response.result.access_token);
-        window.history.replaceState({}, '', window.location.pathname);
-        startCloud(response.result.access_token);
-    } else {
-        const token = localStorage.getItem('dbx_token');
-        if (token) startCloud(token);
+      if (code) {
+        try {
+          const response = await dbxAuth.getCodeChallengeResponse(code, REDIRECT_URI);
+          localStorage.setItem('dbx_access_token', response.result.access_token);
+          window.history.replaceState({}, document.title, window.location.pathname);
+          startDbxSession(response.result.access_token);
+        } catch (e) { console.error('Dropbox Auth Error', e); }
+      } else {
+        const token = localStorage.getItem('dbx_access_token');
+        if (token) startDbxSession(token);
+      }
     }
-}
 
-function startCloud(token) {
-    dbx = new Dropbox.Dropbox({ accessToken: token });
-    document.getElementById('dbx-auth-btn').style.display = 'none';
-    document.getElementById('save-release-btn').style.display = 'block';
-    document.getElementById('sync-status').textContent = '✅ 已啟動雲端自動同步';
-}
+    function startDbxSession(token) {
+      dbx = new Dropbox.Dropbox({ accessToken: token });
+      document.getElementById('dbx-login-btn').style.display = 'none';
+      document.getElementById('dbx-release-btn').style.display = 'block';
+      document.getElementById('dbx-msg').textContent = '☁️ 雲端同步中';
+    }
 
-function doAuth() {
-    const redirectUri = window.location.origin + window.location.pathname;
-    dbxAuth.getAuthenticationUrl(redirectUri, undefined, 'code', 'offline', undefined, undefined, true)
-        .then(url => window.location.href = url);
-}
+    function doDropboxLogin() {
+      dbxAuth.getAuthenticationUrl(REDIRECT_URI, undefined, 'code', 'offline', undefined, undefined, true)
+        .then(url => {
+          window.sessionStorage.setItem('dropbox_auth_state', dbxAuth.codeVerifier);
+          window.location.href = url;
+        });
+    }
 
-// 2. 自動同步邏輯 (存放到 autosave.json)
-async function triggerAutoSync() {
-    if (!dbx) return;
-    document.getElementById('sync-status').textContent = '⏳ 正在自動備份...';
-    
-    const data = { /* 這裡獲取你原來的專案數據對象 */ }; 
-    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-    
-    try {
+    // --- 2. 同步邏輯 ---
+
+    // 自動同步 (草稿)
+    async function autoSync() {
+      if (!dbx || !currentData) return;
+      document.getElementById('dbx-msg').textContent = '⏳ 自動保存中...';
+      try {
+        const blob = new Blob([JSON.stringify(currentData)], { type: 'application/json' });
         await dbx.filesUpload({ path: '/scrivener_autosave.json', contents: blob, mode: 'overwrite' });
-        document.getElementById('sync-status').textContent = '✅ 雲端已同步 (自動)';
-    } catch (e) {
-        document.getElementById('sync-status').textContent = '❌ 同步失敗';
+        document.getElementById('dbx-msg').textContent = '☁️ 雲端已同步';
+      } catch (e) {
+        document.getElementById('dbx-msg').textContent = '❌ 同步失敗';
+      }
     }
-}
 
-// 3. 手動保存正式版 (存放到 /backups/ 資料夾)
-async function manualRelease() {
-    if (!dbx) return;
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const fileName = `/backups/release_${timestamp}.json`;
-    
-    document.getElementById('sync-status').textContent = '🚀 正在上傳正式版...';
-    
-    try {
-        const data = { /* 獲取數據 */ };
-        const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-        await dbx.filesUpload({ path: fileName, contents: blob });
-        alert('正式版已存檔：' + fileName);
-        document.getElementById('sync-status').textContent = '✅ 正式版保存成功';
-    } catch (e) {
-        console.error(e);
-        alert('保存正式版失敗');
+    // 手動正式版 (帶時間戳)
+    async function saveOfficialVersion() {
+      if (!dbx || !currentData) return;
+      const time = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16);
+      const path = `/backups/backup_${time}.json`;
+      
+      document.getElementById('dbx-msg').textContent = '🚀 正在上傳正式版...';
+      try {
+        const blob = new Blob([JSON.stringify(currentData)], { type: 'application/json' });
+        await dbx.filesUpload({ path: path, contents: blob });
+        alert('正式版已備份至: ' + path);
+        document.getElementById('dbx-msg').textContent = '☁️ 雲端已同步';
+      } catch (e) {
+        alert('正式版保存失敗');
+      }
     }
-}
 
-// 監聽打字
-document.getElementById('editor').addEventListener('input', () => {
-    clearTimeout(autoSaveTimer);
-    autoSaveTimer = setTimeout(triggerAutoSync, 2000); // 停筆2秒後同步
-});
+    // --- 3. 集成到原有邏輯 ---
 
-initApp();
-</script>
+    // 在你的 editor input 監聽器中調用
+    editor.addEventListener('input', () => {
+      // 你原有的本地保存邏輯
+      updateSceneContent(); 
+      
+      // 觸發自動同步計時
+      clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(autoSync, 2000); 
+    });
 
+    // 啟動
+    initCloud();
+  </script>
 </body>
 </html>
